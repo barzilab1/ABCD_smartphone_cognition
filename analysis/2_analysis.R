@@ -27,7 +27,8 @@ list_IVs_2_cs <- c("nt_p_yst_001__03_firstage", "nt_p_yst_001__03_firstage*sex_b
 ## Covariates----
 covars_cs <- c(
   "age_br____02A + sex_br + nt_p_yst_001___2____02A + nt_p_yst_001___3____02A + nt_p_yst_001___4____02A + nt_p_yst_001___6____02A",
-  "age_br____02A + sex_br + nt_p_yst_001___2____02A + nt_p_yst_001___3____02A + nt_p_yst_001___4____02A + nt_p_yst_001___6____02A + household_income____02A + parents_high_edu_br____02A"
+  "age_br____02A + sex_br + nt_p_yst_001___2____02A + nt_p_yst_001___3____02A + nt_p_yst_001___4____02A + nt_p_yst_001___6____02A + household_income____02A + parents_high_edu_br____02A",
+  "age_br____02A + sex_br + nt_p_yst_001___2____02A + nt_p_yst_001___3____02A + nt_p_yst_001___4____02A + nt_p_yst_001___6____02A + household_income____02A + parents_high_edu_br____02A + lack_sleep____02A"
 )
 
 covars_cs_inc <- "age_br____02A + sex_br + nt_p_yst_001___2____02A + nt_p_yst_001___3____02A + nt_p_yst_001___4____02A + nt_p_yst_001___6____02A + parents_high_edu_br____02A"
@@ -74,7 +75,7 @@ main_models_list_subcohort1[["subcohort1_analysis2_IVage2y_DV2y"]] <-
 ## Table 2.1.3/ Analysis 3 - Sub-cohort 1 ----
 ### Analysis 3- Excludes all kids with smartohones at  2-year
 ### Exposure= acquisition of smartphone between 2-4 year, Outcome= cognitive change between 2-4 year, Covariates= age, sex, other devices, income, education, DV at 2 year
-main_models_list_subcohort1[["subcohort1_analysis3_IV2to4y_DV2to4y_EXC2y"]] <- 
+main_models_list_subcohort1[["subcohort1_analysis3_IV2to4y_DV2to4y_EXC2y"]] <-
   run_write_models_addDVbaseline(
     data = data_wide_subcohort1_test_analysis3,
     list_DVs = list_DVs_cont_nerocog_scaled,
@@ -128,7 +129,7 @@ main_models_list_subcohort2[["subcohort2_analysis2_IVage2y_DV2y"]] <-
 ## Table 2.1.3/ Analysis 3 - Sub-cohort 2 ----
 ### Analysis 3- Excludes all kids with smartohones at  2-year
 ### Exposure= acquisition of smartphone between 2-4 year, Outcome= cognitive change between 2-4 year, Covariates= age, sex, other devices, income, education, DV at 2 year
-main_models_list_subcohort2[["subcohort2_analysis3_IV2to4y_DV2to4y_EXC2y"]] <- 
+main_models_list_subcohort2[["subcohort2_analysis3_IV2to4y_DV2to4y_EXC2y"]] <-
   run_write_models_addDVbaseline(
     data = data_wide_subcohort2_test_analysis3,
     list_DVs = list_DVs_cont_nerocog_scaled,
@@ -151,7 +152,7 @@ analysis1 <- run_split_half_bootstrap_allDV(
   B = 100
 )
 
-analysis1_boot   <- analysis1$boot_df_all 
+analysis1_boot   <- analysis1$boot_df_all
 analysis1_summary <- analysis1$summary
 
 write.csv(analysis1_boot, "results/analysis1_boot.csv")

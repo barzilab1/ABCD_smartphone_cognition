@@ -10,8 +10,15 @@ data_wide_subcohort1_test_analysis3 <- readRDS("data/data_wide_subcohort1_test_a
 data_wide_subcohort2_test_analysis3 <- readRDS("data/data_wide_subcohort2_test_analysis3.rds")
 
 
-vars <- c("age_br____02A", "sex_br", "parents_high_edu_text_br_master_above____02A", "household_income_75kless____02A")
-factor_vars <- c("sex_br", "parents_high_edu_text_br_master_above____02A", "household_income_75kless____02A")
+vars <- c("age_br____02A", "sex_br", "parents_high_edu_text_br_master_above____02A", "household_income_75kless____02A",
+          # other devices
+          "nt_p_yst_001___2____02A", "nt_p_yst_001___3____02A", "nt_p_yst_001___4____02A", "nt_p_yst_001___6____02A",
+          # baseline cognition
+          "nc_y_nihtb__picvcb__uncor_score____02A", "nc_y_nihtb__flnkr__uncor_score____02A",  "nc_y_nihtb__pttcp__uncor_score____02A",
+          "nc_y_nihtb__readr__uncor_score____02A",  "nc_y_nihtb__picsq__uncor_score____02A"
+          )
+factor_vars <- c("sex_br", "parents_high_edu_text_br_master_above____02A", "household_income_75kless____02A",
+                 "nt_p_yst_001___2____02A", "nt_p_yst_001___3____02A", "nt_p_yst_001___4____02A", "nt_p_yst_001___6____02A")
 
 # Sub-cohort 1----
 ## Table 1.1/ Analysis 1 ----

@@ -36,7 +36,7 @@ create_ever_var <- function(data, search_term, new_col_name, NA0is0 = T) { # NA0
 }
 
 compute_stc__cohort_race = function(data){
-  
+
   tmp_data <- purrr::map2_dfc(
     ABCDscores::vars_ab_g_stc__cohort_race__nih$baseline_choice,
     ABCDscores::vars_ab_g_stc__cohort_race__nih$longitudinal_choice,
@@ -119,8 +119,8 @@ compute_stc__cohort_race = function(data){
         0
       )
     )
-  
-  
+
+
   #ABCDscores::make_static doesnt work. takes only first value
   data_ss = tmp_data %>%
     group_by(participant_id) %>%
@@ -128,13 +128,13 @@ compute_stc__cohort_race = function(data){
       across(starts_with("race"), ~ if_else(any(. == 1, na.rm = TRUE), 1, 0)),
       .groups = "drop"
     )
-  
+
   return(data_ss)
-  
+
 }
 
 get_income_to_needs_ratio <- function(df) {
-  
+
   ########### income to needs ratio
   # SES was estimated using the income-to-needs ratio (INR).
   # The INR was calculated by dividing reported household income by the federal poverty threshold for a given household size.
@@ -142,10 +142,10 @@ get_income_to_needs_ratio <- function(df) {
   # Income was reported in bins and was adjusted to the median for each income bin.
   # We used the 2017 federal poverty level for the corresponding household sizes
   # The U.S. Census Bureau defines “deep poverty” as living in a household with a total cash income below 50 percent of its poverty threshold.
-  
+
   df_ = df[,c("participant_id", "session_id", "visit_date_br", "household_income", "ab_p_demo__roster_br") ]
   df_$year = year(df_$visit_date_br)
-  
+
   df_ <- df_ %>%
     mutate(median_income = case_when(
       household_income == 1 ~ median(seq(1, 4999, 1)),
@@ -162,7 +162,7 @@ get_income_to_needs_ratio <- function(df) {
       # 200000 is higher than the threshold of a household of 20 people (maximum number of household members in ABCD study is 19) (41320 + 12*4180 = 91480)
       # assume the max of group 10 is 299999 so that median is 249999.5 (higher than 200k
     ))
-  
+
   df_ <- df_ %>%
     # add poverty threshold according to the number of hh members (FPL)
     # https://aspe.hhs.gov/topics/poverty-economic-mobility/poverty-guidelines/prior-hhs-poverty-guidelines-federal-register-references/2017-poverty-guidelines till 21
@@ -179,7 +179,7 @@ get_income_to_needs_ratio <- function(df) {
       year >= 2025 ~ 15650 + (ab_p_demo__roster_br -1)*5500,
       .default = NA
     ))
-  
+
   df_ <- df_ %>%
     mutate(
       income_to_needs_ratio_br = median_income/pov_threshold,
@@ -188,36 +188,36 @@ get_income_to_needs_ratio <- function(df) {
         median_income >= pov_threshold ~ 0,
         .default = NA
       ))
-  
+
   df = merge(df, df_[,c("participant_id", "session_id", "income_to_needs_ratio_br", "fam_under_poverty_line_br")])
-  
+
   return(df)
 }
 
 
 get_BMI_percentiles <- function(df){
-  
+
   setDT(df)
   # https://www.cdc.gov/growth-chart-training/hcp/computer-programs/sas.html?CDC_AAref_Val=https://www.cdc.gov/nccdphp/dnpao/growthcharts/resources/sas.htm
   df[, bmi_age_months := ph_y_anthr_age*12]
-  
+
   # BMI
   df[, weight_kg := ph_y_anthr__weight_mean / 2.20462]
   df[, height_cm := ph_y_anthr__height_mean * 2.54]
   df[, bmi := weight_kg / (height_cm /100)^2]
-  
-  
+
+
   df_bmi = cdcanthro(df, age = bmi_age_months, wt = weight_kg, ht = height_cm, bmi = bmi, all = F)
   df = merge(df, df_bmi[, c("participant_id", "session_id", "bmip", "bmiz", "bmip95", "mod_bmiz")], all.x = T)
   df[, c("bmi_age_months", "seq_") := NULL]
-  
+
   #TODO: remove outliers based on bmi/mod_bmiz
-  
-  
+
+
   df[,bmi_overweight := (bmip >= 85) * 1  ] # TODO check with researcher whether obesity should be part of overweight or not
   df[,bmi_obesity := (bmip >= 95) * 1  ]
   df[,bmi_sever_obesity := (bmip95 >= 120) * 1  ]
-  
+
   return(setDF(df))
 }
 
@@ -228,16 +228,16 @@ get_BMI_percentiles <- function(df){
 replace_888_with_0 <- function(df) {
   # Identify columns ending with "_sx", symptoms columns
   symptoms_cols <- grep("_sx$", names(df), value = TRUE)
-  
+
   # Replace 888 with 0
   df[symptoms_cols] <- lapply(df[symptoms_cols], function(x) replace(x, x == 888, 0))
-  
+
   # Replace all remaining 888 values with NA (for diagnosis columns)
   df[df == 888| df == 555] <- NA
-  
+
   # Drop unused factor levels
   df <- droplevels(df)
-  
+
   return(df)
 }
 
@@ -269,21 +269,24 @@ add_smartphone_ownership_2to4y <- function(wide_data) {
         is.na(smartphone_sum) ~ NA_real_,
         smartphone_sum == 0 ~ 0,
         smartphone_sum == 2 ~ 1
+      ),
+      smartphone_owner_bin_2to4y = case_when(is.na(nt_p_yst_001___1____02A) & smartphone_owner_bin_2to4y == 0 ~ NA_real_,
+                                             is.na(nt_p_yst_001___1____04A) & smartphone_owner_bin_2to4y == 0 ~ NA_real_,
+                                             TRUE ~ as.numeric(smartphone_owner_bin_2to4y)
       )
     )
 }
-
 
 # Function to create change variables for a list of DVs
 add_change_scores <- function(data, dv_list) {
   for (dv in dv_list) {
     # Define new variable names
     var_change2to4 <- paste0(dv, "_change2to4")
-    
+
     # Construct the actual column names in the wide dataset
     var_2y   <- paste0(dv, "____02A")
     var_4y   <- paste0(dv, "____04A")
-    
+
     # Add the new columns
     data <- data %>%
       mutate(
