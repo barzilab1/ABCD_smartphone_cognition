@@ -177,143 +177,266 @@ ggsave("plots/figure2_final_v2.pdf", figure2, width = 20, height = 22, dpi = 320
 
 # Revision----
 # Variables
+# list_DVs_cont_nerocog <- c("nc_y_nihtb__picvcb__uncor_score", "nc_y_nihtb__flnkr__uncor_score", "nc_y_nihtb__pttcp__uncor_score",
+#                            "nc_y_nihtb__readr__uncor_score", "nc_y_nihtb__picsq__uncor_score")
+# labels <- c("Flanker", "Picture\nSequence", "Picture\nVocabulary", "Pattern\nComparison", "Oral Reading")
+# covars <- c("sex_br", paste0("nt_p_yst_001___", c(2, 3, 4, 6)),
+#             "household_income", "parents_high_edu_br")
+# site <- "site_br"
+#
+# # Load data
+# sm_groups <- readRDS("data/sm_groups.rds")
+# merged_dat_smartp <- readRDS("data/merged_dat_smartp.rds")
+#
+# # Prepare Y2/Y4 data; retain all four exposure groups
+# dat <- merged_dat_smartp %>%
+#     filter(session_id %in% c("ses-02A", "ses-04A")) %>%
+#     inner_join(sm_groups %>% distinct(participant_id, exposure_group),
+#                by = "participant_id") %>%
+#     mutate(sample = case_when(participant_id %in% id_gr1 ~ "Discovery",
+#                               participant_id %in% id_gr2 ~ "Replication"),
+#            exposure_group = factor(exposure_group,
+#                                    levels = c("control", "sm_2y_4y", "sm_3y", "sm_4y"))) %>%
+#     filter(!is.na(sample))
+#
+# # Fit adjusted models and predict cognition at Y2/Y4
+# fit_mod_plot <- function(o, s) {
+#     d <- dat %>% filter(sample == s) %>%
+#         mutate(across(all_of(covars), as.factor)) %>%
+#         drop_na(all_of(c(o, "age_br", covars, site, "family_id_br"))) %>%
+#         group_by(participant_id) %>%
+#         filter(n() == 2, n_distinct(session_id) == 2, n_distinct(age_br) == 2) %>%
+#         ungroup() %>%
+#         mutate(y = as.numeric(scale(.data[[o]]))) %>% droplevels()
+#
+#     # Interaction model: nonowner and Y2-owner slopes
+#     f <- as.formula(paste0(
+#         "y ~ age_br * exposure_group + ",
+#         paste(covars, collapse = " + "),
+#         " + (1|", site, "/family_id_br)"
+#     ))
+#
+#     m <- lmer(f, data = d, REML = FALSE)
+#
+#     # No-interaction model: common age slope across all four groups
+#     m0 <- lmer(update(f, . ~ . - age_br:exposure_group),
+#                data = d, REML = FALSE)
+#
+#     b <- fixef(m)
+#     bn <- unname(b["age_br"])
+#     bs <- unname(b["age_br"] + b["age_br:exposure_groupsm_2y_4y"])
+#     ba <- unname(fixef(m0)["age_br"])
+#
+#     # Predict adjusted cognitive scores at Y2 and Y4
+#     base <- d %>% filter(session_id == "ses-02A")
+#     a2 <- mean(base$age_br)
+#     a4 <- mean(d$age_br[d$session_id == "ses-04A"])
+#
+#     pred <- map_dfr(c("Nonowners", "Smartphone owners by Y2", "Overall"), function(g) {
+#         map_dfr(c(0, 2), function(t) {
+#             nd <- base %>% mutate(age_br = if (t == 0) a2 else a4)
+#
+#             if (g != "Overall")
+#                 nd$exposure_group <- factor(
+#                     if (g == "Nonowners") "control" else "sm_2y_4y",
+#                     levels = levels(d$exposure_group)
+#                 )
+#
+#             tibble(
+#                 group = g, year = t,
+#                 cognition = mean(predict(
+#                     if (g == "Overall") m0 else m,
+#                     newdata = nd, re.form = NA
+#                 ))
+#             )
+#         })
+#     })
+#
+#     list(
+#         pred = pred %>% mutate(sample = s, outcome = o),
+#         effect = tibble(
+#             sample = s, outcome = o,
+#             beta_NSP = bn, beta_SP = bs, beta_age = ba,
+#             difference = bn - bs,
+#             relative_pct = 100 * (bn - bs) / ba
+#         )
+#     )
+# }
+#
+# # Run analyses for all 5 outcomes × 2 samples
+# res <- crossing(outcome = list_DVs_cont_nerocog,
+#                 sample = c("Discovery", "Replication")) %>%
+#     mutate(result = map2(outcome, sample, fit_mod_plot))
+#
+# effects <- bind_rows(map(res$result, "effect"))
+#
+# pd <- bind_rows(map(res$result, "pred")) %>%
+#     mutate(
+#         outcome = factor(outcome, levels = list_DVs_cont_nerocog, labels = labels),
+#         sample = factor(sample, levels = c("Discovery", "Replication")),
+#         group = factor(group, levels = c("Nonowners", "Smartphone owners by Y2", "Overall"))
+#     )
+#
+# # Plot adjusted trajectories: lines only, no markers or arrows
+# p <- ggplot(pd, aes(year, cognition, color = group,
+#                     linetype = group, group = group)) +
+#     geom_line(linewidth = 1.2) +
+#     facet_grid(outcome ~ sample, scales = "fixed") +
+#     scale_x_continuous(breaks = c(0, 2), labels = c("Y2", "Y4"),
+#                        limits = c(-0.1, 2.4)) +
+#     scale_color_manual(values = c(
+#         "Nonowners" = "#159B65",
+#         "Smartphone owners by Y2" = "#E58B30",
+#         "Overall" = "#64748B"
+#     )) +
+#     scale_linetype_manual(values = c(
+#         "Nonowners" = "solid",
+#         "Smartphone owners by Y2" = "solid",
+#         "Overall" = "dashed"
+#     )) +
+#     labs(x = NULL, y = "Adjusted cognitive score (SD)",
+#          color = NULL, linetype = NULL) +
+#     theme_bw(base_size = 14) +
+#     theme(
+#         axis.title.y = element_text(size = 22, face = "bold"),
+#         axis.text.x  = element_text(size = 20, face = "bold"),
+#         axis.text.y  = element_text(size = 20, face = "bold"),
+#         strip.background = element_rect(fill = "grey95", color = NA),
+#         strip.text   = element_text(size = 22, face = "bold"),
+#         panel.grid.minor = element_blank(),
+#         panel.spacing = unit(1, "cm"),
+#         legend.position = "top",
+#         legend.text = element_text(size = 22, face = "bold"),
+#         legend.key.width = unit(3, "cm")
+#
+#     )
+#
+#
+# # Export figure and slope estimates
+# ggsave(file.path("plots", "adjusted_trajectories.pdf"),
+#        p, width = 12, height = 15, dpi = 320)
+#
+# write.csv(effects, "data/adjusted_slopes.csv", row.names = FALSE)
+# write.csv(pd, "data/slopes.csv", row.names = FALSE)
+
+# Variables
 list_DVs_cont_nerocog <- c("nc_y_nihtb__picvcb__uncor_score", "nc_y_nihtb__flnkr__uncor_score", "nc_y_nihtb__pttcp__uncor_score",
                            "nc_y_nihtb__readr__uncor_score", "nc_y_nihtb__picsq__uncor_score")
 labels <- c("Flanker", "Picture\nSequence", "Picture\nVocabulary", "Pattern\nComparison", "Oral Reading")
-covars <- c("sex_br", paste0("nt_p_yst_001___", c(2, 3, 4, 6)),
-            "household_income", "parents_high_edu_br")
+covars <- c("sex_br", paste0("nt_p_yst_001___", c(2, 3, 4, 6)), "household_income", "parents_high_edu_br")
 site <- "site_br"
 
-# Load data
+# Define both analyses; income is removed only from income-analysis covariates
+analyses <- list(
+    smartphone = list(iv = "exposure_group", adj = covars, ref = "control", comp = "sm_2y_4y",
+                      groups = c("Nonowners", "Smartphone owners by Y2", "Overall")),
+    income = list(iv = "household_income_75kless", adj = setdiff(covars, "household_income"), ref = "0", comp = "1",
+                  groups = c(">75K", "<=75K", "Overall"))
+)
+
+# Load and prepare data
 sm_groups <- readRDS("data/sm_groups.rds")
 merged_dat_smartp <- readRDS("data/merged_dat_smartp.rds")
 
-# Prepare Y2/Y4 data; retain all four exposure groups
 dat <- merged_dat_smartp %>%
     filter(session_id %in% c("ses-02A", "ses-04A")) %>%
-    inner_join(sm_groups %>% distinct(participant_id, exposure_group),
-               by = "participant_id") %>%
-    mutate(sample = case_when(participant_id %in% id_gr1 ~ "Discovery",
-                              participant_id %in% id_gr2 ~ "Replication"),
-           exposure_group = factor(exposure_group,
-                                   levels = c("control", "sm_2y_4y", "sm_3y", "sm_4y"))) %>%
+    inner_join(sm_groups %>% distinct(participant_id, exposure_group), by = "participant_id") %>%
+    mutate(sample = case_when(participant_id %in% id_gr1 ~ "Discovery", participant_id %in% id_gr2 ~ "Replication"),
+           exposure_group = factor(exposure_group, levels = c("control", "sm_2y_4y", "sm_3y", "sm_4y")),
+           household_income_75kless = factor(household_income_75kless, levels = c(0, 1))) %>% # Binary income IV
     filter(!is.na(sample))
 
-# Fit adjusted models and predict cognition at Y2/Y4
-fit_mod_plot <- function(o, s) {
+fit_mod_plot <- function(o, s, a) {
+    cfg <- analyses[[a]]
+    iv <- cfg$iv
+    adj <- cfg$adj
+
     d <- dat %>% filter(sample == s) %>%
-        mutate(across(all_of(covars), as.factor)) %>%
-        drop_na(all_of(c(o, "age_br", covars, site, "family_id_br"))) %>%
+        mutate(across(all_of(adj), as.factor)) %>%
+        drop_na(all_of(c(o, "age_br", iv, adj, site, "family_id_br"))) %>%
         group_by(participant_id) %>%
         filter(n() == 2, n_distinct(session_id) == 2, n_distinct(age_br) == 2) %>%
         ungroup() %>%
         mutate(y = as.numeric(scale(.data[[o]]))) %>% droplevels()
 
-    # Interaction model: nonowner and Y2-owner slopes
-    f <- as.formula(paste0(
-        "y ~ age_br * exposure_group + ",
-        paste(covars, collapse = " + "),
-        " + (1|", site, "/family_id_br)"
-    ))
-
+    f <- as.formula(paste0("y ~ age_br * ", iv, " + ", paste(adj, collapse = " + "),
+                           " + (1|", site, "/family_id_br)"))
     m <- lmer(f, data = d, REML = FALSE)
-
-    # No-interaction model: common age slope across all four groups
-    m0 <- lmer(update(f, . ~ . - age_br:exposure_group),
-               data = d, REML = FALSE)
+    m0 <- lmer(update(f, as.formula(paste0(". ~ . - age_br:", iv))), data = d, REML = FALSE)
 
     b <- fixef(m)
-    bn <- unname(b["age_br"])
-    bs <- unname(b["age_br"] + b["age_br:exposure_groupsm_2y_4y"])
-    ba <- unname(fixef(m0)["age_br"])
+    beta_ref <- unname(b["age_br"])
+    beta_comp <- unname(b["age_br"] + b[paste0("age_br:", iv, cfg$comp)])
+    beta_age <- unname(fixef(m0)["age_br"])
 
-    # Predict adjusted cognitive scores at Y2 and Y4
     base <- d %>% filter(session_id == "ses-02A")
     a2 <- mean(base$age_br)
     a4 <- mean(d$age_br[d$session_id == "ses-04A"])
 
-    pred <- map_dfr(c("Nonowners", "Smartphone owners by Y2", "Overall"), function(g) {
+    pred <- map_dfr(seq_along(cfg$groups), function(i) {
         map_dfr(c(0, 2), function(t) {
             nd <- base %>% mutate(age_br = if (t == 0) a2 else a4)
-
-            if (g != "Overall")
-                nd$exposure_group <- factor(
-                    if (g == "Nonowners") "control" else "sm_2y_4y",
-                    levels = levels(d$exposure_group)
-                )
-
-            tibble(
-                group = g, year = t,
-                cognition = mean(predict(
-                    if (g == "Overall") m0 else m,
-                    newdata = nd, re.form = NA
-                ))
-            )
+            if (i < 3) nd[[iv]] <- factor(c(cfg$ref, cfg$comp)[i], levels = levels(d[[iv]]))
+            tibble(group = cfg$groups[i], year = t,
+                   cognition = mean(predict(if (i == 3) m0 else m, newdata = nd, re.form = NA)))
         })
     })
 
     list(
-        pred = pred %>% mutate(sample = s, outcome = o),
-        effect = tibble(
-            sample = s, outcome = o,
-            beta_NSP = bn, beta_SP = bs, beta_age = ba,
-            difference = bn - bs,
-            relative_pct = 100 * (bn - bs) / ba
-        )
+        pred = pred %>% mutate(analysis = a, sample = s, outcome = o),
+        effect = tibble(analysis = a, sample = s, outcome = o,
+                        beta_reference = beta_ref, beta_comparison = beta_comp, beta_age = beta_age,
+                        difference = beta_ref - beta_comp,
+                        relative_pct = ifelse(abs(beta_age) > 1e-10, 100 * (beta_ref - beta_comp) / beta_age, NA_real_))
     )
 }
 
-# Run analyses for all 5 outcomes × 2 samples
-res <- crossing(outcome = list_DVs_cont_nerocog,
+# Run both analyses
+res <- crossing(analysis = names(analyses), outcome = list_DVs_cont_nerocog,
                 sample = c("Discovery", "Replication")) %>%
-    mutate(result = map2(outcome, sample, fit_mod_plot))
+    mutate(result = pmap(list(outcome, sample, analysis), fit_mod_plot))
 
 effects <- bind_rows(map(res$result, "effect"))
-
 pd <- bind_rows(map(res$result, "pred")) %>%
-    mutate(
-        outcome = factor(outcome, levels = list_DVs_cont_nerocog, labels = labels),
-        sample = factor(sample, levels = c("Discovery", "Replication")),
-        group = factor(group, levels = c("Nonowners", "Smartphone owners by Y2", "Overall"))
-    )
+    mutate(outcome = factor(outcome, levels = list_DVs_cont_nerocog, labels = labels),
+           sample = factor(sample, levels = c("Discovery", "Replication")))
 
-# Plot adjusted trajectories: lines only, no markers or arrows
-p <- ggplot(pd, aes(year, cognition, color = group,
-                    linetype = group, group = group)) +
-    geom_line(linewidth = 1.2) +
-    facet_grid(outcome ~ sample, scales = "fixed") +
-    scale_x_continuous(breaks = c(0, 2), labels = c("Y2", "Y4"),
-                       limits = c(-0.1, 2.4)) +
-    scale_color_manual(values = c(
-        "Nonowners" = "#159B65",
-        "Smartphone owners by Y2" = "#E58B30",
-        "Overall" = "#64748B"
-    )) +
-    scale_linetype_manual(values = c(
-        "Nonowners" = "solid",
-        "Smartphone owners by Y2" = "solid",
-        "Overall" = "dashed"
-    )) +
-    labs(x = NULL, y = "Adjusted cognitive score (SD)",
-         color = NULL, linetype = NULL) +
-    theme_bw(base_size = 14) +
-    theme(
-        axis.title.y = element_text(size = 22, face = "bold"),
-        axis.text.x  = element_text(size = 20, face = "bold"),
-        axis.text.y  = element_text(size = 20, face = "bold"),
-        strip.background = element_rect(fill = "grey95", color = NA),
-        strip.text   = element_text(size = 22, face = "bold"),
-        panel.grid.minor = element_blank(),
-        panel.spacing = unit(1, "cm"),
-        legend.position = "top",
-        legend.text = element_text(size = 22, face = "bold"),
-        legend.key.width = unit(3, "cm")
+# Shared plotting function
+plot_trajectories <- function(a) {
+    groups <- analyses[[a]]$groups
+    d <- pd %>% filter(analysis == a) %>% mutate(group = factor(group, levels = groups))
 
-    )
+    ggplot(d, aes(year, cognition, color = group, linetype = group, group = group)) +
+        geom_line(linewidth = 1.2) +
+        facet_grid(outcome ~ sample, scales = "fixed") +
+        scale_x_continuous(breaks = c(0, 2), labels = c("Y2", "Y4"), limits = c(-0.1, 2.4)) +
+        scale_color_manual(values = setNames(c("#159B65", "#E58B30", "#64748B"), groups)) +
+        scale_linetype_manual(values = setNames(c("solid", "solid", "dashed"), groups)) +
+        labs(x = NULL, y = "Adjusted cognitive score (SD)", color = NULL, linetype = NULL) +
+        theme_bw(base_size = 14) +
+        theme(axis.title.y = element_text(size = 22, face = "bold"),
+              axis.text.x = element_text(size = 20, face = "bold"),
+              axis.text.y = element_text(size = 20, face = "bold"),
+              strip.background = element_rect(fill = "grey95", color = NA),
+              strip.text = element_text(size = 22, face = "bold"),
+              panel.grid.minor = element_blank(),
+              panel.spacing = unit(1, "cm"),
+              legend.position = "top",
+              legend.text = element_text(size = 22, face = "bold"),
+              legend.key.width = unit(3, "cm"))
+}
 
+# Export both analyses separately
+dir.create("plots", showWarnings = FALSE, recursive = TRUE)
+dir.create("data", showWarnings = FALSE, recursive = TRUE)
 
-# Export figure and slope estimates
-ggsave(file.path("plots", "adjusted_trajectories.pdf"),
-       p, width = 12, height = 15, dpi = 320)
+for (a in names(analyses)) {
+    p <- plot_trajectories(a)
+    prefix <- if (a == "smartphone") "" else "income_"
+    ggsave(paste0("plots/", prefix, "adjusted_trajectories.pdf"), p, width = 12, height = 15, dpi = 320)
+    write.csv(filter(effects, analysis == a), paste0("data/", prefix, "adjusted_slopes.csv"), row.names = FALSE)
+    write.csv(filter(pd, analysis == a), paste0("data/", prefix, "slopes.csv"), row.names = FALSE)
+}
 
-write.csv(effects, "data/adjusted_slopes.csv", row.names = FALSE)
+print(plot_trajectories("smartphone"))
+print(plot_trajectories("income"))
