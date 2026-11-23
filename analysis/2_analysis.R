@@ -140,6 +140,42 @@ main_models_list_subcohort2[["subcohort2_analysis3_IV2to4y_DV2to4y_EXC2y"]] <-
     ext = "subcohort2_analysis3_IV2to4y_DV2to4y_EXC2y"
   )
 
+
+# Stratified results for figure 1----
+## Analysis 1: Stratified by household income (<75K vs. >=75K)
+
+# Analysis 1: Stratified by household income (<75K vs. >=75K)
+
+income_var <- "household_income_75kless____02A"
+
+for (inc in c(0, 1)) {
+    inc_label <- ifelse(inc == 1, "less75k", "75kplus")
+
+    main_models_list_subcohort1[[paste0("subcohort1_analysis1_", inc_label)]] <-
+        run_write_models_addDVbaseline(
+            data = data_wide_subcohort1_test %>%
+                dplyr::filter(.data[[income_var]] == inc),
+            list_DVs = list_DVs_cont_nerocog_scaled_2Y,
+            list_covars = covars_cs_inc,
+            list_IVs = list_IVs_1.3_cs,
+            random_eff = random_effects_s,
+            include_dv2y = FALSE,
+            ext = paste0("subcohort1_analysis1_IV2y_DV2y_", inc_label)
+        )
+
+    main_models_list_subcohort2[[paste0("subcohort2_analysis1_", inc_label)]] <-
+        run_write_models_addDVbaseline(
+            data = data_wide_subcohort2_test %>%
+                dplyr::filter(.data[[income_var]] == inc),
+            list_DVs = list_DVs_cont_nerocog_scaled_2Y,
+            list_covars = covars_cs_inc,
+            list_IVs = list_IVs_1.3_cs,
+            random_eff = random_effects_s,
+            include_dv2y = FALSE,
+            ext = paste0("subcohort2_analysis1_IV2y_DV2y_", inc_label)
+        )
+}
+
 # Bootstrap models----
 ## Analysis 1----
 analysis1 <- run_split_half_bootstrap_allDV(
