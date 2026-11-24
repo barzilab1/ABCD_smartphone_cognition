@@ -263,14 +263,14 @@ fit_mod_plot <- function(o, s, inc) {
 
 # Run overall and both income-stratified analyses
 res <- crossing(outcome = list_DVs_cont_nerocog, sample = c("Discovery", "Replication"),
-                levels = c("Overall", "Household income ≥ $75,000", "Household income < $75,000")) %>%
+                income_group = c("Overall", "Household income ≥ $75,000", "Household income < $75,000")) %>%
     mutate(result = pmap(list(outcome, sample, income_group), fit_mod_plot))
 
 effects <- bind_rows(map(res$result, "effect"))
 pd <- bind_rows(map(res$result, "pred")) %>%
     mutate(outcome = factor(outcome, levels = list_DVs_cont_nerocog, labels = labels),
            sample = factor(sample, levels = c("Discovery", "Replication")),
-           income_group = c("Overall", "Household income ≥ $75,000", "Household income < $75,000"),
+           income_group = factor(income_group, levels = c("Overall", "Household income ≥ $75,000", "Household income < $75,000")),
            group = factor(group, levels = groups))
 
 # Plot smartphone trajectories by income stratum
@@ -306,13 +306,13 @@ dir.create("data", showWarnings = FALSE, recursive = TRUE)
 p <- plot_trajectories()
 p_strat <- plot_trajectories(TRUE)
 
-ggsave("plots/adjusted_trajectories_v2.pdf", p, width = 12, height = 15, dpi = 320)
-ggsave("plots/income_stratified_trajectories.pdf", p_strat, width = 18, height = 15, dpi = 320)
+ggsave("plots/adjusted_trajectories_v2_test.pdf", p, width = 12, height = 15, dpi = 320)
+ggsave("plots/income_stratified_trajectories_test.pdf", p_strat, width = 18, height = 15, dpi = 320)
 
-write.csv(filter(effects, income_group == "Overall"), "data/adjusted_slopes.csv", row.names = FALSE)
-write.csv(filter(pd, income_group == "Overall"), "data/slopes.csv", row.names = FALSE)
-write.csv(filter(effects, income_group != "Overall"), "data/income_stratified_adjusted_slopes.csv", row.names = FALSE)
-write.csv(filter(pd, income_group != "Overall"), "data/income_stratified_slopes.csv", row.names = FALSE)
+write.csv(filter(effects, income_group == "Overall"), "data/adjusted_slopes_test.csv", row.names = FALSE)
+write.csv(filter(pd, income_group == "Overall"), "data/slopes_test.csv", row.names = FALSE)
+write.csv(filter(effects, income_group != "Overall"), "data/income_stratified_adjusted_slopes_test.csv", row.names = FALSE)
+write.csv(filter(pd, income_group != "Overall"), "data/income_stratified_slopes_test.csv", row.names = FALSE)
 
 print(p)
 print(p_strat)
